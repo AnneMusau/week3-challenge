@@ -1,0 +1,82 @@
+document.addEventListener('DOMContentLoaded', async () => {
+    const filmsList = document.getElementById('films');
+
+    try {
+        // Fetch the list of films from your API
+        const response = await fetch('http://localhost:3000/films');
+        if (!response.ok) {
+            throw new Error('Failed to fetch movie list');
+        }
+        const films = await response.json();
+
+        // Display the list of films in the <ul id="films"> element
+        filmsList.innerHTML = ''; // Clear existing list items
+
+        films.forEach(film => {
+            const li = document.createElement('li');
+            li.classList.add('film', 'item');
+            if (film.tickets_sold >= film.capacity) {
+                li.classList.add('sold-out');
+            }
+            li.textContent = film.title;
+            li.dataset.filmId = film.id;
+            filmsList.appendChild(li);
+
+            // Add click event to each film item
+            li.addEventListener('click', () => {
+                displayMovieDetails(film);
+            });
+        });
+
+        // Display details of the first film initially
+        if (films.length > 0) {
+            displayMovieDetails(films[0]);
+        }
+    } catch (error) {
+        console.error('Error fetching movie list:', error);
+    }
+});
+
+// Function to display movie details
+function displayMovieDetails(film) {
+    const movieDetails = document.getElementById('movie-details');
+    movieDetails.innerHTML = `
+        <img src="${film.poster}" alt="${film.title} Poster" class="poster">
+        <h2>${film.title}</h2>
+        <p><strong>Description:</strong> ${film.description}</p>
+        <p><strong>Runtime:</strong> ${film.runtime} minutes</p>
+        <p><strong>Showtime:</strong> ${film.showtime}</p>
+        <p><strong>Tickets Available:</strong> ${film.capacity - film.tickets_sold}</p>
+    `;
+
+    const buyButton = document.createElement('button');
+    buyButton.textContent = 'Buy Ticket';
+    buyButton.addEventListener('click', () => {
+        buyTicket(film);
+    });
+
+    movieDetails.appendChild(buyButton);
+}
+
+// Function to simulate buying a ticket
+function buyTicket(film) {
+    const remainingTickets = film.capacity - film.tickets_sold;
+    if (remainingTickets > 0) {
+        film.tickets_sold++;
+        const ticketsAvailable = film.capacity - film.tickets_sold;
+        const movieDetails = document.getElementById('movie-details');
+        movieDetails.querySelector('p:nth-child(5)').textContent = `Tickets Available: ${ticketsAvailable}`;
+
+        if (ticketsAvailable === 0) {
+            const buyButton = movieDetails.querySelector('button');
+            buyButton.textContent = 'Sold Out';
+            buyButton.disabled = true;
+
+            const filmsList = document.getElementById('films');
+            const filmListItem = filmsList.querySelector(`li[data-film-id="${film.id}"]`);
+            filmListItem.classList.add('sold-out');
+        }
+    } else {
+        alert('No tickets available!');
+    }
+}
